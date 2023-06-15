@@ -1,0 +1,23 @@
+WIC_Obesity
+-
+index INT PK
+YearStart Date        
+LocationAbbr Char(2)       
+Data_Value Float       
+Latitude Float          
+Longitude Float           
+Sample_Size Float         
+Question Char(100)         
+Age_Category Char(15)       
+States Float            
+Counties Float           
+Stratification1 Char(25)
+
+Dataset_2
+-
+_id
+
+
+Dataset_3
+-
+_id
