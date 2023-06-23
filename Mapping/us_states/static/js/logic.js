@@ -1,195 +1,205 @@
-// // Creating the map object
-// let myMap = L.map("map").setView([40, -100], 5);
-
-// // Adding the tile layer
-// const streetMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-//   attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
-// }).addTo(myMap);
-
-// // Load the CSV data
-// d3.csv("test_data.csv").then(function (data) {
-//   // Process the CSV data
-//   processData(data);
-// });
-
-// function processData(data) {
-//   // Load the state boundary GeoJSON data
-//   d3.json("gz_2010_us_040_00_500k.json").then(function (boundaryData) {
-//     // Create a lookup object for state ID and corresponding data from CSV
-//     const stateData = {};
-//     data.forEach(function (entry) {
-//       const stateID = entry.state_id;
-//       stateData[stateID] = {
-//         "2008": parseFloat(entry["2008"]),
-//       };
-//       const stateIDString = String(entry.state_id); // Move this line inside the loop
-//     });
-
-//     console.log("State Data:", stateData); // Check stateData object
-
-//     // Loop through each feature in the boundary GeoJSON data
-//     boundaryData.features.forEach(function (feature) {
-//       const stateID = feature.properties.STATE;
-//       const stateName = feature.properties.NAME;
-//       const yearData = stateData[stateID];
-
-//       // Create a GeoJSON layer for the state
-//       const stateGeoJSON = L.geoJSON(feature, {
-//         style: function () {
-//           return {
-//             fillColor: getColor(yearData),
-//             color: "#fff",
-//             weight: 1,
-//             fillOpacity: 0.8,
-//           };
-//         },
-//         onEachFeature: function (feature, layer) {
-//           const year = feature.properties.year;
-//           const value = yearData && yearData[year] ? yearData[year] : null;
-//           layer.bindPopup("<strong>" + stateName + "</strong><br /><br />Year: " + year + "<br />Value: " + value);
-//         },        
-//       });
-
-//       // Add the GeoJSON layer to the map
-//       stateGeoJSON.addTo(myMap);
-//     });
-//   });
-// }
-
-// // Function to determine the color based on the value
-// function getColor(yearData) {
-//   if (yearData && yearData["2008"]) {
-//     const value = yearData["2008"];
-//     return value > 15 ? "#b10026" :
-//       value > 10 ? "#e31a1c" :
-//       value > 5 ? "#fd8d3c" :
-//       value > 0 ? "#fecc5c" :
-//       "#ffffb2";
-//   } else {
-//     // Return a default color if data is missing
-//     return "#cccccc";
-//   }
-// }
-
-
-
-
-
-
-
-
-
 // Creating the map object
-let myMap = L.map("map").setView([40, -100], 5);
+let myMap = L.map('map').setView([40, -100], 5);
 
 // Adding the tile layer
-const streetMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
 }).addTo(myMap);
 
-// Load the CSV data
-d3.csv("test_data.csv").then(function (data) {
-  // Process the CSV data
-  processData(data);
+let heatLayer;
+let stateLayer;
+let countyLayer;
+
+// Create separate overlay groups for heatLayer, stateLayer, and countyLayer
+const heatLayerOverlay = L.layerGroup().addTo(myMap);
+const stateLayerOverlay = L.layerGroup().addTo(myMap);
+const countyLayerOverlay = L.layerGroup().addTo(myMap);
+
+// Load the various datasets
+Promise.all([
+  d3.csv('test_data.csv'),
+  d3.csv('coordinates.csv'),
+  d3.json('county_df.json'),
+  d3.json('gz_2010_us_040_00_500k.json'),
+  d3.json('gz_2010_us_050_00_500k.json')
+]).then(function (data) {
+  const testData = data[0];
+  const coordinatesData = data[1];
+  const countyData = data[2];
+  const stateBoundaryData = data[3];
+  const countyBoundaryData = data[4];
+
+  // Process the CSV data and create the layers
+  processData(coordinatesData, testData, countyData, stateBoundaryData, countyBoundaryData);
 });
 
-function processData(data) {
-  // Load the state boundary GeoJSON data
-  d3.json("gz_2010_us_040_00_500k.json").then(function (boundaryData) {
-    // Create a lookup object for state ID and corresponding data from CSV
-    const stateData = {};
-    data.forEach(function (entry) {
-      const stateID = entry.state_id;
-      const yearData = {};
-      for (const key in entry) {
-        if (key !== "state_id" && key !== "State") {
-          yearData[key] = parseFloat(entry[key]);
-        }
-      }
-      stateData[stateID] = yearData;
-    });
-
-    console.log("State Data:", stateData); // Check stateData object
-
-    // Create a dropdown menu for years
-    const yearDropdown = document.getElementById("year-dropdown");
-    const years = Object.keys(data[0]).filter((key) => key !== "state_id" && key !== "State");
-    years.forEach(function (year) {
-    const option = document.createElement("option");
-    option.value = year;
-    option.text = year;
-    yearDropdown.appendChild(option);
-  });
-
-    // Function to handle the year change event
-    function handleYearChange() {
-      const selectedYear = yearDropdown.value;
-      myMap.eachLayer(function (layer) {
-        if (layer instanceof L.GeoJSON) {
-          const stateID = layer.feature.properties.STATE;
-          const yearData = stateData[stateID];
-          layer.setStyle({ fillColor: getColor(yearData, selectedYear) });
-          const popupContent =
-            "<strong>" +
-            layer.feature.properties.NAME +
-            "</strong><br /><br />Year: " +
-            selectedYear +
-            "<br />Childhood Obesity Rate: " +
-            (yearData && yearData[selectedYear] ? yearData[selectedYear] : null);
-          layer.setPopupContent(popupContent);
-        }
-      });
+function processData(coordinatesData, testData, countyData, stateBoundaryData, countyBoundaryData) {
+  // Process coordinates data
+  const coordinates = coordinatesData.map(entry => [parseFloat(entry.Lat), parseFloat(entry.Lon), 6]);
+  heatLayer = L.heatLayer(coordinates, {
+    radius: 25,
+    gradient: {
+      0.0: 'darkred',
+      0.5: 'red',
+      1.0: 'orange'
     }
-
-    // Add change event listener to the dropdown menu
-    yearDropdown.addEventListener("change", handleYearChange);
-
-    // Loop through each feature in the boundary GeoJSON data
-    boundaryData.features.forEach(function (feature) {
-      const stateID = feature.properties.STATE;
-      const stateName = feature.properties.NAME;
-      const yearData = stateData[stateID];
-
-      // Create a GeoJSON layer for the state
-      const stateGeoJSON = L.geoJSON(feature, {
-        style: function () {
-          return {
-            fillColor: getColor(yearData, yearDropdown.value),
-            color: "#fff",
-            weight: 1,
-            fillOpacity: 0.8,
-          };
-        },
-        onEachFeature: function (feature, layer) {
-          const selectedYear = yearDropdown.value;
-          const popupContent =
-            "<strong>" +
-            stateName +
-            "</strong><br /><br />Year: " +
-            selectedYear +
-            "<br />Child Obesity Rate: " +
-            (yearData && yearData[selectedYear] ? yearData[selectedYear] : null);
-          layer.bindPopup(popupContent);
-        },
-      });
-
-      // Add the GeoJSON layer to the map
-      stateGeoJSON.addTo(myMap);
-    });
   });
+
+  // Process state data
+  const stateData = {};
+  testData.forEach(function (entry) {
+    const stateID = entry.state_id;
+    const yearData = {};
+    // Only consider data for the year 2020
+    const year = '2020';
+    yearData[year] = parseFloat(entry[year]);
+    stateData[stateID] = yearData;
+  });
+
+  console.log('State Data:', stateData);
+
+  stateBoundaryData.features.forEach(function (feature) {
+    const stateID = feature.properties.STATE;
+    const stateName = feature.properties.NAME;
+    const yearData = stateData[stateID];
+
+    // Create a GeoJSON layer for the state
+    const stateGeoJSON = L.geoJSON(feature, {
+      style: function () {
+        return {
+          fillColor: getColor(yearData, '2020'), // Set the year to "2020"
+          color: '#fff',
+          weight: 1,
+          fillOpacity: 0.3
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        const selectedYear = '2020'; // Set the year to "2020"
+        const popupContent =
+          '<strong>' +
+          stateName +
+          '</strong><br /><br />Year: ' +
+          selectedYear +
+          '<br />Childhood Obesity Rate: ' +
+          (yearData && yearData[selectedYear] ? yearData[selectedYear] : null);
+
+        // Log pop-ups with null values
+        if (yearData == null) {
+          console.log('Null value in pop-up for state:', stateName);
+        }
+
+        layer.bindPopup(popupContent);
+      }
+    });
+
+    // Add the GeoJSON layer to the map as an overlay
+    stateGeoJSON.addTo(stateLayerOverlay);
+  });
+
+  // Process county data
+  const countyYearData = {};
+  countyData.forEach(function (entry) {
+    const countyID = entry['State-County-Code'];
+    const countyYear = '2020';
+    countyYearData[countyID] = parseFloat(entry.POVERTY_RATE);
+  });
+
+  console.log('County Data:', countyYearData);
+
+  countyBoundaryData.features.forEach(function (feature) {
+    const countyID = feature.properties.GEO_ID.slice(-5); // Extract last 5 digits from GEO_ID
+    const countyName = feature.properties.NAME;
+    const countyRate = countyYearData[countyID];
+
+    // Create a GeoJSON layer for the county
+    const countyGeoJSON = L.geoJSON(feature, {
+      style: function () {
+        return {
+          fillColor: getCountyColor(countyRate, '2020'), // Set the year to "2020"
+          color: '#fff',
+          weight: 1,
+          fillOpacity: 0.3
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        const selectedYear = '2020'; // Set the year to "2020"
+        const popupContent =
+          '<strong>' +
+          countyName +
+          '</strong><br /><br />Year: ' +
+          selectedYear +
+          '<br />Poverty Rate: ' +
+          (countyRate ? countyRate : null);
+
+        // Log pop-ups with null values
+        if (countyRate == null) {
+          console.log('Null value in pop-up for county:', countyName);
+        }
+
+        layer.bindPopup(popupContent);
+      }
+    });
+
+    // Add the GeoJSON layer to the map as an overlay
+    countyGeoJSON.addTo(countyLayerOverlay);
+  });
+
+  // Add the default layer (coordinates) to the map as an overlay
+  heatLayer.addTo(heatLayerOverlay);
 }
 
-// Function to determine the color based on the value
+// Function to determine the color for state layer based on the value
 function getColor(yearData, selectedYear) {
   if (yearData && yearData[selectedYear]) {
     const value = yearData[selectedYear];
-    return value > 16 ? "#b10026" :
-      value > 12 ? "#e31a1c" :
-      value > 8 ? "#fd8d3c" :
-      value > 0 ? "#fecc5c" :
-      "#ffffb2";
+    return value > 16
+      ? '#238b45'
+      : value > 12
+      ? '#66c2a4'
+      : value > 8
+      ? '#b2e2e2'
+      : value > 0
+      ? '#edf8fb'
+      : '#ffffb2';
   } else {
+    // Log the state layer that doesn't receive a color
+    console.log('No color assigned for state layer:', yearData);
+
     // Return a default color if data is missing
-    return "#cccccc";
+    return '#d9e864';
   }
 }
+
+// Function to determine the color for county layer based on the value
+function getCountyColor(rate, selectedYear) {
+  if (rate) {
+    return rate > 25
+      ? '#d7191c'
+      : rate > 20
+      ? '#fdae61'
+      : rate > 15
+      ? '#ffffbf'
+      : rate > 10
+      ? '#a6d96a'
+      : rate > 5
+      ? '#1a9641'
+      : '#c2e699';
+  } else {
+    // Log the county layer that doesn't receive a color
+    console.log('No color assigned for county layer:', rate);
+
+    // Return a default color if data is missing
+    return '#d9e864';
+  }
+}
+
+// Create an overlay maps object
+const overlayMaps = {
+  "Obesity by State": stateLayerOverlay,
+  "Fastfood Locations": heatLayerOverlay,
+  "Poverty by County": countyLayerOverlay
+};
+
+// Add layer control to the map
+L.control.layers(null, overlayMaps, { collapsed: false }).addTo(myMap);
+
