@@ -10,38 +10,42 @@ let heatLayer;
 let stateLayer;
 let countyLayer;
 
-// Create separate overlay groups for heatLayer, stateLayer, and countyLayer
+// Create separate overlay groups for heatLayer, stateLayer, countyLayer, and countyHealthLayer
 const heatLayerOverlay = L.layerGroup().addTo(myMap);
 const stateLayerOverlay = L.layerGroup().addTo(myMap);
 const countyLayerOverlay = L.layerGroup().addTo(myMap);
+const countyHealthLayerOverlay = L.layerGroup().addTo(myMap); // Add countyHealthLayerOverlay
 
-// Load the various datasets
 Promise.all([
   d3.csv('test_data.csv'),
   d3.csv('coordinates.csv'),
+  d3.csv('health_indicators.csv'), // Corrected variable name
   d3.json('county_df.json'),
   d3.json('gz_2010_us_040_00_500k.json'),
   d3.json('gz_2010_us_050_00_500k.json')
 ]).then(function (data) {
   const testData = data[0];
   const coordinatesData = data[1];
-  const countyData = data[2];
-  const stateBoundaryData = data[3];
-  const countyBoundaryData = data[4];
+  const health_indicators = data[2]; // Corrected variable name
+  const countyData = data[3];
+  const stateBoundaryData = data[4];
+  const countyBoundaryData = data[5];
 
   // Process the CSV data and create the layers
-  processData(coordinatesData, testData, countyData, stateBoundaryData, countyBoundaryData);
+  processData(coordinatesData, testData, health_indicators, countyData, stateBoundaryData, countyBoundaryData); 
 });
 
-function processData(coordinatesData, testData, countyData, stateBoundaryData, countyBoundaryData) {
+function processData(coordinatesData, testData, health_indicators, countyData, stateBoundaryData, countyBoundaryData) {
   // Process coordinates data
-  const coordinates = coordinatesData.map(entry => [parseFloat(entry.Lat), parseFloat(entry.Lon), 6]);
+  const coordinates = coordinatesData.map(entry => [parseFloat(entry.lat), parseFloat(entry.lon), 6]);
   heatLayer = L.heatLayer(coordinates, {
-    radius: 25,
+    radius: 30,
     gradient: {
-      0.0: 'darkred',
-      0.5: 'red',
-      1.0: 'orange'
+      0.0: 'yellow',
+      0.25: 'orange',
+      0.5: "red",
+      0.75: "darkred",
+      1.0: 'purple'
     }
   });
 
@@ -144,6 +148,44 @@ function processData(coordinatesData, testData, countyData, stateBoundaryData, c
     countyGeoJSON.addTo(countyLayerOverlay);
   });
 
+    // Process health data
+  const healthData = {};
+  health_indicators.forEach(function (entry) {
+    const countyID = entry.FIPS;
+    const fairPoor = parseFloat(entry['% Fair or Poor Health']); // Extract the '% Fair or Poor Health' value and convert it to a float
+    healthData[countyID] = fairPoor;
+  });
+
+  countyBoundaryData.features.forEach(function (feature) {
+    const countyID = feature.properties.GEO_ID.slice(-5); // Extract the last 5 digits from GEO_ID
+    const countyName = feature.properties.NAME;
+    const fairPoorRate = healthData[countyID];
+
+    // Create a GeoJSON layer for the county
+    const countyGeoJSON = L.geoJSON(feature, {
+      style: function () {
+        return {
+          fillColor: getCountyColor(fairPoorRate), // Pass the '% Fair or Poor Health' value to the color function
+          color: '#fff',
+          weight: 1,
+          fillOpacity: 0.3
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        const popupContent =
+          '<strong>' +
+          countyName +
+          '</strong><br /><br />% Fair or Poor Health: ' +
+          (fairPoorRate ? fairPoorRate + '%' : 'No data');
+
+        layer.bindPopup(popupContent);
+      }
+    });
+
+    // Add the GeoJSON layer to the map as an overlay
+    countyGeoJSON.addTo(countyHealthLayerOverlay);
+  });
+
   // Add the default layer (coordinates) to the map as an overlay
   heatLayer.addTo(heatLayerOverlay);
 }
@@ -193,13 +235,68 @@ function getCountyColor(rate, selectedYear) {
   }
 }
 
+
 // Create an overlay maps object
 const overlayMaps = {
   "Obesity by State": stateLayerOverlay,
   "Fastfood Locations": heatLayerOverlay,
-  "Poverty by County": countyLayerOverlay
+  "Poverty by County": countyLayerOverlay,
+  "Fair or Poor Health by County": countyHealthLayerOverlay
 };
 
 // Add layer control to the map
 L.control.layers(null, overlayMaps, { collapsed: false }).addTo(myMap);
 
+// Create the state legend
+const stateLegend = L.control({ position: 'bottomright' });
+stateLegend.onAdd = function () {
+  const div = L.DomUtil.create('div', 'info legend');
+  const grades = [0, 8, 12, 16]; // Update the grades based on the color scale
+  const colors = ['#edf8fb', '#b2e2e2', '#66c2a4', '#238b45']; // Update the colors based on the color scale
+  const labels = [];
+
+  for (let i = 0; i < grades.length; i++) {
+    const from = grades[i];
+    const to = grades[i + 1];
+
+    labels.push(
+      '<i style="background:' +
+        colors[i] +
+        '"></i> ' +
+        from +
+        (to ? '&ndash;' + to : '+')
+    );
+  }
+
+  div.innerHTML = '<h4>State Level (%)</h4>' + labels.join('<br>');
+  return div;
+};
+
+stateLegend.addTo(myMap);
+
+// Create the county legend
+const countyLegend = L.control({ position: 'bottomleft' });
+countyLegend.onAdd = function () {
+  const div = L.DomUtil.create('div', 'info legend');
+  const grades = [0, 5, 10, 15, 20, 25]; // Update the grades based on the color scale
+  const colors = ['#c2e699', '#1a9641', '#a6d96a', '#ffffbf', '#fdae61', '#d7191c']; // Update the colors based on the color scale
+  const labels = [];
+
+  for (let i = 0; i < grades.length; i++) {
+    const from = grades[i];
+    const to = grades[i + 1];
+
+    labels.push(
+      '<i style="background:' +
+        colors[i] +
+        '"></i> ' +
+        from +
+        (to ? '&ndash;' + to : '+')
+    );
+  }
+
+  div.innerHTML = '<h4>County Level (%)</h4>' + labels.join('<br>');
+  return div;
+};
+
+countyLegend.addTo(myMap);
