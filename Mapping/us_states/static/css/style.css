@@ -25,3 +25,22 @@ html {
   margin-right: 8px;
   opacity: 0.8;
 }
+
+#textbox {
+  position: relative;
+  z-index: 1001;
+}
+
+#titleBox {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background-color: rgb(186, 214, 219);
+  border: 1px solid black;
+  text-align: center;
+}
+
+
+

@@ -37,17 +37,10 @@ Promise.all([
 
 function processData(coordinatesData, testData, health_indicators, countyData, stateBoundaryData, countyBoundaryData) {
   // Process coordinates data
-  const coordinates = coordinatesData.map(entry => [parseFloat(entry.lat), parseFloat(entry.lon), 6]);
-  heatLayer = L.heatLayer(coordinates, {
-    radius: 30,
-    gradient: {
-      0.0: 'yellow',
-      0.25: 'orange',
-      0.5: "red",
-      0.75: "darkred",
-      1.0: 'purple'
-    }
-  });
+  const coordinates = coordinatesData.map(entry => [parseFloat(entry.lat), parseFloat(entry.lon)]);
+  const markers = coordinates.map(coords => L.circleMarker(coords, { radius: 1, fillColor: 'black', color: '#000', weight: 1, fillOpacity: 1 }));
+  
+  heatLayer = L.layerGroup(markers);  
 
   // Process state data
   const stateData = {};
@@ -188,6 +181,7 @@ function processData(coordinatesData, testData, health_indicators, countyData, s
 
   // Add the default layer (coordinates) to the map as an overlay
   heatLayer.addTo(heatLayerOverlay);
+
 }
 
 // Function to determine the color for state layer based on the value
@@ -300,3 +294,26 @@ countyLegend.onAdd = function () {
 };
 
 countyLegend.addTo(myMap);
+
+// Create the title element
+const title = document.createElement('h1');
+title.textContent = 'Group 6 Project';
+
+// Create the textbox element
+const textbox = document.createElement('p');
+textbox.textContent = 'Welcome to our mapping website! Here you can compare several datasets. For best results, only select one or two layers at a time. Keep in mind only the most recent layer you select will return pop up data. Enjoy!';
+
+// Create a container div for the title and textbox
+const titleBox = document.createElement('div');
+titleBox.id = 'titleBox';
+
+// Append the title and textbox elements to the container
+titleBox.appendChild(title);
+titleBox.appendChild(textbox);
+
+// Get the map div element
+const mapDiv = document.getElementById('map');
+
+// Insert the titleBox container before the map div
+mapDiv.parentNode.insertBefore(titleBox, mapDiv);
+
