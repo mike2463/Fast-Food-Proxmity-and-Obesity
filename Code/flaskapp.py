@@ -10,7 +10,8 @@ from flask import Flask, jsonify
 # Database Setup
 #################################################
 # Provide your database connection URL here
-database_url = ""
+# url is postgresql://username:password@host:port/database_name
+database_url = "postgresql://postgres:postgres@localhost:5432/project_three"
 
 # Create the engine
 engine = create_engine(database_url)
@@ -20,14 +21,18 @@ base = automap_base()
 # Reflect the tables
 base.prepare(engine, reflect=True)
 
-# Choose the table you want to query (replace 'Table' with the actual table name)
-Table = base.classes.Table
+# create names for each table in database
+coordinates = base.classes.coordinates
+county_data = base.classes.county_data
+restaurant_names = base.classes.restaurant_names
+state_data = base.classes.state_data
+wic_obesity = base.classes.wic_obesity
 
 # Create a session
 session = Session(engine)
 
 # Query the data from the table
-results = session.query(Table).all()
+results = session.query(coordinates).all()
 
 # Convert the results to a list of dictionaries
 data = []
