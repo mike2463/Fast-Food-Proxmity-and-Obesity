@@ -50,21 +50,73 @@ def homepage():
 
 @app.route("/api/v1.0/restaurant_data")
 def rest_data():
-    """add query results into dict, then jsonify it."""
+    """add data from two tables into one dict, then jsonify it."""
     coords = session.query(coordinates).all()
     rests = session.query(restaurant_names).all()
+    # initialize empty lists
     lat = []
     long = []
     rnames = []
+    # take lat and long in each row, then zip together
     for coord in coords:
         lat.append(coord.lat)
         long.append(coord.lon)
     rest_coords = (zip(lat,long))
+    # zip together restaurant and location, then make dict
     for rest in rests:
         rnames.append(rest.restaurant_name)
     rest_dict = dict(zip(rnames,rest_coords))
     return jsonify(rest_dict)
 
+@app.route("/api/v1.0/county_data")
+def counties():
+    """create dict of county data, then json"""
+    co_data = session.query(county_data).all()
+    s_c_code = []
+    poverty = []
+    year = []
+    for i in co_data:
+        s_c_code.append(i.state_county_code)
+        poverty.append(i.poverty_rate)
+        year.append(i.year)
+    pov_year = zip(poverty, year)
+    pov_dict = dict(zip(s_c_code,pov_year))
+    return jsonify(pov_dict)
+
+@app.route("/api/v1.0/state_data")
+def states():
+    """create dict of state data, then json"""
+    st_data = session.query(state_data).all()
+    s_c_code = []
+    poverty = []
+    year = []
+    for i in st_data:
+        s_c_code.append(i.state_county_code)
+        poverty.append(i.poverty_rate)
+        year.append(i.year)
+    pov_year = zip(poverty, year)
+    pov_state_dict = dict(zip(s_c_code,pov_year))
+    return jsonify(pov_state_dict)
+
+@app.route("/api/v1.0/wic_obesity")
+def wic():
+    """create dict of wic data then json"""
+    wic_data = session.query(wic_obesity).all()
+    lat = []
+    long = []
+    obesity = []
+    index = []
+
+    for x in wic_data:
+        lat.append(x.latitude)
+        long.append(x.longitude)
+        obesity.append(x.data_value)
+        index.append(x.index)
+
+    coords = zip(lat, long)
+    ob_co = zip(obesity,coords)
+    data_dict = dict(zip(index, ob_co))
+    return jsonify(data_dict)
 
 if __name__ == '__main__':
     app.run(debug=True)
