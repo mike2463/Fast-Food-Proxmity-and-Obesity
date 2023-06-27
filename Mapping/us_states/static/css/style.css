@@ -26,13 +26,12 @@ html {
   opacity: 0.8;
 }
 
-#textbox {
-  position: relative;
-  z-index: 1001;
+#subtitleBox {
+  font-size: 16px; 
 }
 
-#titleBox {
-  position: absolute;
+#titleContainer {
+  position: fixed;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
@@ -40,7 +39,12 @@ html {
   background-color: rgb(186, 214, 219);
   border: 1px solid black;
   text-align: center;
+  padding: 24px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  font-size: 36px; 
+  font-weight: bold; 
+  font-family: Arial, sans-serif; 
 }
-
 
 
