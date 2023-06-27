@@ -1,19 +1,19 @@
 -- schema for tables in our database
 
 CREATE TABLE wic_obesity (
-index INT NOT NULL,
-YearStart TIMESTAMP,
-LocationAbbr VARCHAR(2) NOT NULL,
-Data_Value FLOAT,
-Latitude FLOAT,
-Longitude FLOAT,
-Sample_Size FLOAT,
-Question VARCHAR(100) NOT NULL,
-Age_Category VARCHAR(50) NOT NULL,
-States FLOAT,
-Counties FLOAT,
-Stratification1 VARCHAR(50) NOT NULL,
-PRIMARY KEY (index)
+	index INT NOT NULL,
+	YearStart TIMESTAMP,
+	LocationAbbr VARCHAR(2) NOT NULL,
+	Data_Value FLOAT,
+	Latitude FLOAT,
+	Longitude FLOAT,
+	Sample_Size FLOAT,
+	Question VARCHAR(100) NOT NULL,
+	Age_Category VARCHAR(50) NOT NULL,
+	States FLOAT,
+	Counties FLOAT,
+	Stratification1 VARCHAR(50) NOT NULL,
+	PRIMARY KEY (index)
 );
 
 CREATE TABLE state_data (
