@@ -10,7 +10,12 @@ https://api.census.gov/data/timeseries/poverty/saipe.html
 
 TomTom API - for fast food restuarant locations
 
-## Inspiration for Map
+## JS Libraries for Map
+D3
+
+Leaflet
+
+jQuery (provided additional text formatting options)
 
 ## Summary
 The analysis showed that there is no correlation between the proximity of fast food and poverty on childhood obesity.
