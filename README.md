@@ -5,7 +5,9 @@ How does the proximity of fast food and poverty affect the rates of childhood ob
 
 ## Data Sources
 https://healthdata.gov/dataset/Nutrition-Physical-Activity-and-Obesity-Women-Infa/ssm4-cykc
+
 https://api.census.gov/data/timeseries/poverty/saipe.html
+
 TomTom API - for fast food restuarant locations
 
 ## Inspiration for Map
