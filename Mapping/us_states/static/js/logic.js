@@ -6,27 +6,27 @@ const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
   attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
 }).addTo(myMap);
 
-let heatLayer;
+let ffLayer;
 let stateLayer;
 let countyLayer;
 
-// Create separate overlay groups for heatLayer, stateLayer, countyLayer, and countyHealthLayer
-const heatLayerOverlay = L.layerGroup().addTo(myMap);
+// Create separate overlay groups for ffLayer, stateLayer, countyLayer, and countyHealthLayer
+const ffLayerOverlay = L.layerGroup().addTo(myMap);
 const stateLayerOverlay = L.layerGroup().addTo(myMap);
 const countyLayerOverlay = L.layerGroup().addTo(myMap);
 const countyHealthLayerOverlay = L.layerGroup().addTo(myMap); // Add countyHealthLayerOverlay
 
 Promise.all([
-  d3.csv('test_data.csv'),
+  d3.csv('WIC_data_cleaned.csv'),
   d3.csv('coordinates.csv'),
-  d3.csv('health_indicators.csv'), // Corrected variable name
+  d3.csv('health_indicators.csv'),
   d3.json('county_df.json'),
   d3.json('gz_2010_us_040_00_500k.json'),
   d3.json('gz_2010_us_050_00_500k.json')
 ]).then(function (data) {
   const testData = data[0];
   const coordinatesData = data[1];
-  const health_indicators = data[2]; // Corrected variable name
+  const health_indicators = data[2];
   const countyData = data[3];
   const stateBoundaryData = data[4];
   const countyBoundaryData = data[5];
@@ -40,7 +40,7 @@ function processData(coordinatesData, testData, health_indicators, countyData, s
   const coordinates = coordinatesData.map(entry => [parseFloat(entry.lat), parseFloat(entry.lon)]);
   const markers = coordinates.map(coords => L.circleMarker(coords, { radius: 1, fillColor: 'black', color: '#000', weight: 1, fillOpacity: 1 }));
   
-  heatLayer = L.layerGroup(markers);  
+  ffLayer = L.layerGroup(markers);  
 
   // Process state data
   const stateData = {};
@@ -64,14 +64,14 @@ function processData(coordinatesData, testData, health_indicators, countyData, s
     const stateGeoJSON = L.geoJSON(feature, {
       style: function () {
         return {
-          fillColor: getColor(yearData, '2020'), // Set the year to "2020"
+          fillColor: getColor(yearData, '2020'), 
           color: '#fff',
           weight: 1,
           fillOpacity: 0.3
         };
       },
       onEachFeature: function (feature, layer) {
-        const selectedYear = '2020'; // Set the year to "2020"
+        const selectedYear = '2020'; 
         const popupContent =
           '<strong>' +
           stateName +
@@ -112,14 +112,14 @@ function processData(coordinatesData, testData, health_indicators, countyData, s
     const countyGeoJSON = L.geoJSON(feature, {
       style: function () {
         return {
-          fillColor: getCountyColor(countyRate, '2020'), // Set the year to "2020"
+          fillColor: getCountyColor(countyRate, '2020'), 
           color: '#fff',
           weight: 1,
           fillOpacity: 0.3
         };
       },
       onEachFeature: function (feature, layer) {
-        const selectedYear = '2020'; // Set the year to "2020"
+        const selectedYear = '2020'; 
         const popupContent =
           '<strong>' +
           countyName +
@@ -180,7 +180,7 @@ function processData(coordinatesData, testData, health_indicators, countyData, s
   });
 
   // Add the default layer (coordinates) to the map as an overlay
-  heatLayer.addTo(heatLayerOverlay);
+  ffLayer.addTo(ffLayerOverlay);
 
 }
 
@@ -229,13 +229,12 @@ function getCountyColor(rate, selectedYear) {
   }
 }
 
-
 // Create an overlay maps object
 const overlayMaps = {
   "Obesity by State": stateLayerOverlay,
-  "Fastfood Locations": heatLayerOverlay,
+  "Fast-Food Locations": ffLayerOverlay,
   "Poverty by County": countyLayerOverlay,
-  "Fair or Poor Health by County": countyHealthLayerOverlay
+  "Health by County": countyHealthLayerOverlay
 };
 
 // Add layer control to the map
@@ -262,7 +261,7 @@ stateLegend.onAdd = function () {
     );
   }
 
-  div.innerHTML = '<h4>State Level (%)</h4>' + labels.join('<br>');
+  div.innerHTML = '<h4>State Level (%)<br><span class="legend-subtitle">(Obesity)</span></h4>' + labels.join('<br>');
   return div;
 };
 
@@ -289,31 +288,32 @@ countyLegend.onAdd = function () {
     );
   }
 
-  div.innerHTML = '<h4>County Level (%)</h4>' + labels.join('<br>');
+  div.innerHTML = '<h4>County Level (%)<br><span class="legend-subtitle">(Poverty and Health)</span></h4>' + labels.join('<br>');
+
   return div;
 };
 
 countyLegend.addTo(myMap);
 
-// Create the title element
-const title = document.createElement('h1');
-title.textContent = 'Group 6 Project';
+//Title and text useing jquery library
+$(document).ready(function() {
+  // Create the title element
+  var $title = $("<div>")
+    .attr("id", "titleBox")
+    .text("Group 6 Project");
 
-// Create the textbox element
-const textbox = document.createElement('p');
-textbox.textContent = 'Welcome to our mapping website! Here you can compare several datasets. For best results, only select one or two layers at a time. Keep in mind only the most recent layer you select will return pop up data. Enjoy!';
+  // Create the subtitle element
+  var $subtitle = $("<div>")
+    .attr("id", "subtitleBox")
+    .html("<br>Welcome to our mapping website! Here you can compare several datasets. For best results, only select one or two layers at a time. Keep in mind only the most recent layer you select will return pop-up data. Enjoy!");
 
-// Create a container div for the title and textbox
-const titleBox = document.createElement('div');
-titleBox.id = 'titleBox';
+  // Create a container div to hold the title and subtitle
+  var $titleContainer = $("<div>")
+    .attr("id", "titleContainer")
+    .append($title)
+    .append($subtitle);
 
-// Append the title and textbox elements to the container
-titleBox.appendChild(title);
-titleBox.appendChild(textbox);
-
-// Get the map div element
-const mapDiv = document.getElementById('map');
-
-// Insert the titleBox container before the map div
-mapDiv.parentNode.insertBefore(titleBox, mapDiv);
+  // Append the title container to the body
+  $("body").prepend($titleContainer);
+});
 
