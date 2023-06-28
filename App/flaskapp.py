@@ -53,16 +53,21 @@ def rest_data():
     lat = []
     long = []
     rnames = []
-    # take lat and long in each row, then zip together
+    # take lat and long in each row, and add to respective list
     for coord in coords:
         lat.append(coord.lat)
         long.append(coord.lon)
-    rest_coords = (zip(lat,long))
-    # zip together restaurant and location, then make dict
+    
+    # grab restaurant name from each row, then add to list
     for rest in rests:
         rnames.append(rest.restaurant_name)
-    rest_dict = dict(zip(rnames,rest_coords))
-    return jsonify(rest_dict)
+    
+    # combine lists into dict
+    r_list = []
+    for i in range(len(lat)):
+        r_dict = {"lat":lat[i],"long":long[i],"Name":rnames[i]}
+        r_list.append(r_dict)
+    return jsonify(r_list)
 
 @app.route("/api/v1.0/county_data")
 def counties():
@@ -75,24 +80,34 @@ def counties():
         s_c_code.append(i.state_county_code)
         poverty.append(i.poverty_rate)
         year.append(i.year)
-    pov_year = zip(poverty, year)
-    pov_dict = dict(zip(s_c_code,pov_year))
-    return jsonify(pov_dict)
+
+    # combine lists into dict
+    c_list = []
+    for i in range(len(s_c_code)):
+        c_dict = {"state_county_code":s_c_code[i],"poverty rate":poverty[i],"year":year[i]}
+        c_list.append(c_dict)
+            
+    return jsonify(c_list)
 
 @app.route("/api/v1.0/state_data")
 def states():
     """create dict of state data, then json"""
     st_data = session.query(state_data).all()
+    s_code = []
     s_c_code = []
     poverty = []
     year = []
     for i in st_data:
+        s_code.append(i.state_code)
         s_c_code.append(i.state_county_code)
         poverty.append(i.poverty_rate)
         year.append(i.year)
-    pov_year = zip(poverty, year)
-    pov_state_dict = dict(zip(s_c_code,pov_year))
-    return jsonify(pov_state_dict)
+    
+    s_list = []
+    for i in range(len(s_code)):
+        s_dict = {"s_code":s_code[i],"state_county_code":s_c_code[i],"poverty rate":poverty[i],"year":year[i]}
+        s_list.append(s_dict)
+    return jsonify(s_list)
 
 @app.route("/api/v1.0/wic_obesity")
 def wic():
@@ -101,18 +116,21 @@ def wic():
     lat = []
     long = []
     obesity = []
-    index = []
+    state = []
 
     for x in wic_data:
         lat.append(x.latitude)
         long.append(x.longitude)
         obesity.append(x.data_value)
-        index.append(x.index)
+        state.append(x.locationabbr)
 
-    coords = zip(lat, long)
-    ob_co = zip(obesity,coords)
-    data_dict = dict(zip(index, ob_co))
-    return jsonify(data_dict)
+# combine lists into dict
+    wic_list = []
+    for i in range(len(lat)):
+        wic_dict = {"State":state[i],"lat":lat[i],"long":long[i],"obesity":obesity[i]}
+        wic_list.append(wic_dict)
+
+    return jsonify(wic_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
